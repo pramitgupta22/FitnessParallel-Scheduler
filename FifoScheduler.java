@@ -406,8 +406,48 @@ final Map<Priority, Map<String, ResourceRequest>> requests =new HashMap<Priority
       }
         return result;
     }
+//---------------------------------------- calculate fitness for each application-----------------------
+    /*
+    Fitness = TM * SM + TP * SP 
+      tm = request of memory  of the current app
+      tp =  request of #containers by the current app...
+      sm =  available memory of node on which scheduling has to be done
+      sp =  availabe  #containers of node on which scheduling has to be done
+    */
+    public  float getFitness(SchedulerApp app,SchedulerNode node)
+    {
+     Map<Priority,Integer> tm_priority_map = new HashMap<Priority,Integer>(); 
+     Map<Priority,Integer> tp_priority_map = new HashMap<Priority,Integer>(); 
+     Resource app_onsunption = app.getCurrentConsumption();
+     int memory_consumption_of_app = app_consumption.getMemory(); 
 
+     int tm = 0;
+     int tp = 0;
+     int sm = 0;
+     int sp = 0; 
+ 
+     for (Priority priority : app.getPriorities()) 
+     {
+         int req_memory_pri =0;
+         int no_containers_pri =0;
+         Map<String, ResourceRequest> requests = app.getResourceRequests(priority);
+         for (ResourceRequest request : requests.values()) 
+          {
+            req_menmory_pri += request.getCapability().getMemory ;
+            no_containers_pri += request.getNumContainers();
+          }
+          tm += req_menmory_pri;
+          tp += no_containers_pri;
+          tm_priority_map.put(priority,req_menmory_pri);
+          tp_priority_map.put(priority,no_containers_pri);            
+     }
 
+    sm= node.getNumContainers();
+    sp= node.getAvailableResource();
+
+    float fitness = (float) tm*tp + sm*sp;
+    return fitness;
+  }
 
   /**
    * Heart of the scheduler...
